@@ -1,0 +1,4 @@
+.vscode-ctags
+build
+libjson.a
+json.elf
