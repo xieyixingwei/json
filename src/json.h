@@ -3,24 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-
-#define CONFIG_JSON_KV_MAX_COUNT   32
-
-#ifndef TRUE
-#define TRUE    1
-#endif
-
-#ifndef FALSE
-#define FALSE    0
-#endif
-
-#ifndef MIN
-    #define MIN(a, b)   ((a) < (b) ? (a) : (b))
-#endif
-
-#ifndef START_WITH
-    #define START_WITH(str, dest)   (0 == strncmp(str, dest, MIN(strlen(str), strlen(dest))))
-#endif
+#include <stdbool.h>
 
 #ifndef SUCCESS
 #define SUCCESS                         0
@@ -34,18 +17,16 @@
 typedef struct {
     #define JSON_TYPE_BITS       3
     uint32_t type: JSON_TYPE_BITS,
-                keyhash: 8 * sizeof(uint32_t) - JSON_TYPE_BITS;
-
+             keyhash: 8 * sizeof(uint32_t) - JSON_TYPE_BITS;
         #define CUT_KEYHASH(hash)       (hash)
         #define JSON_TYPE_INT       0
         #define JSON_TYPE_STR       1
         #define JSON_TYPE_BOOL      2
         #define JSON_TYPE_NULL      3
         #define JSON_TYPE_LIST      4
-
     union {
         int vint;
-        int vbool;
+        bool vbool;
         int vnull;
         unsigned int vlist_count;
         char *vstr;
@@ -55,8 +36,9 @@ typedef struct {
 struct json_decode_op;
 
 typedef struct {
-    uint32_t count;
-    json_value_t values[CONFIG_JSON_KV_MAX_COUNT];
+    size_t count;
+    json_value_t *values;
+    size_t values_size;
     const struct json_decode_op *op;
 } json_decode_t;
 
@@ -64,9 +46,16 @@ typedef struct json_decode_op {
     int (* get_int) (json_decode_t *json, const char *key, int def);
     int (* get_bool) (json_decode_t *json, const char *key, int def);
     const char* (* get_str) (json_decode_t *json, const char *key);
-    int (* is_null) (json_decode_t *json, const char *key);
-    unsigned int (* get_list_count) (json_decode_t *json, const char *key);
+    bool (* is_null) (json_decode_t *json, const char *key);
+    size_t (* get_list_count) (json_decode_t *json, const char *key);
+    size_t (* get_list_int) (json_decode_t *json, const char *key, int *buf, size_t n);
+    size_t (* get_list_byte) (json_decode_t *json, const char *key, uint8_t *buf, size_t n);
+    size_t (* get_list_str) (json_decode_t *json, const char *key, const char **buf, size_t n);
+    int (* get_list_int_of) (json_decode_t *json, const char *key, size_t index);
+    const char* (* get_list_str_of) (json_decode_t *json, const char *key, size_t index);
 } json_decode_op_t;
+
+void json_decode(json_decode_t *json, json_value_t *values, size_t n, char *jsonstr);
 
 struct json_encode_op;
 

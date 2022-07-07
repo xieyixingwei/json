@@ -8,6 +8,16 @@
 #define PTR_IS_BLANK(ptr) \
     (*(ptr) == ' ' || *(ptr) == '\r' || *(ptr) == '\n' || *(ptr) == '\t')
 
+#ifndef MIN
+    #define MIN(a, b)   ((a) < (b) ? (a) : (b))
+#endif
+
+#define JSON_DECODE_IS_VALID(json)         ((json) != NULL && (json)->count < ((json)->values_size))
+
+#ifndef START_WITH
+    #define START_WITH(str, dest)   (0 == strncmp(str, dest, MIN(strlen(str), strlen(dest))))
+#endif
+
 /**
  * @brief insert the str in ptr
  * 
@@ -113,17 +123,17 @@ static uint32_t key_hash(const char* key)
 
 static char* parse_int_bool_null_value(json_decode_t *json, uint32_t keyhash, char *vptr)
 {
-    if(json != NULL) {
+    if(JSON_DECODE_IS_VALID(json)) {
         json->values[json->count].type = JSON_TYPE_INT;
         json->values[json->count].keyhash = CUT_KEYHASH(keyhash);
 
         if(START_WITH(vptr, "false") || START_WITH(vptr, "FALSE")) {
             json->values[json->count].type = JSON_TYPE_BOOL;
-            json->values[json->count++].value.vbool = FALSE;
+            json->values[json->count++].value.vbool = false;
         }
         else if(START_WITH(vptr, "true") || START_WITH(vptr, "TRUE")) {
             json->values[json->count].type = JSON_TYPE_BOOL;
-            json->values[json->count++].value.vbool = TRUE;
+            json->values[json->count++].value.vbool = true;
         }
         else if(START_WITH(vptr, "null") || START_WITH(vptr, "NULL")) {
             json->values[json->count].type = JSON_TYPE_NULL;
@@ -178,7 +188,7 @@ static char* parse_str_value(json_decode_t *json, uint32_t keyhash, char *vptr)
     if(*vptr++ != '\"') {
         return NULL;
     }
-    if(json != NULL) {
+    if(JSON_DECODE_IS_VALID(json)) {
         json->values[json->count].keyhash = CUT_KEYHASH(keyhash);
         json->values[json->count].type = JSON_TYPE_STR;
         json->values[json->count++].value.vstr = vptr;
@@ -197,8 +207,6 @@ static char* parse_str_value(json_decode_t *json, uint32_t keyhash, char *vptr)
     /* find the end of str value */
     return goto_value_end(vptr);
 }
-
-
 
 static char *skip_blank(char *vptr)
 {
@@ -230,7 +238,7 @@ static char *parse_list(json_decode_t *json, uint32_t keyhash, char *vptr)
             list_count++;
         }
         if(*vptr == ']') {
-            if(json != NULL) {
+            if(JSON_DECODE_IS_VALID(json)) {
                 json->values[json->count].type = JSON_TYPE_LIST;
                 json->values[json->count].keyhash = CUT_KEYHASH(keyhash);
                 json->values[json->count++].value.vlist_count = list_count;
@@ -312,7 +320,7 @@ static char *parse_value(json_decode_t *json, uint32_t keyhash, char *vptr)
     }
     return vptr;
 }
-#if 0
+#if 1
 void json_decode_print(json_decode_t *json)
 {
     for(uint32_t i = 0; i < json->count; i++) {
@@ -345,49 +353,123 @@ static json_value_t* get_value(json_decode_t *json, const char *key)
     return NULL;
 }
 
+static json_value_t* get_list_value(json_decode_t *json, const char *key, size_t index)
+{
+    #define INDEX_SIZE    12
+    char indexStr[INDEX_SIZE] = {0};
+    snprintf(indexStr, INDEX_SIZE, "%lu", index);
+    const uint32_t keyhash = key_hash(key) + key_hash(indexStr);
+    for(uint32_t i = 0; i < json->count; i++) {
+        if(keyhash == CUT_KEYHASH(json->values[i].keyhash)) {
+            return &(json->values[i]);
+        }
+    }
+    return NULL;
+}
+
 static int get_int(json_decode_t *json, const char *key, int def)
 {
-    json_value_t *value = get_value(json, key);
-    if(value == NULL || value->type != JSON_TYPE_INT) {
+    json_value_t *jv = get_value(json, key);
+    if(jv == NULL || jv->type != JSON_TYPE_INT) {
         return def;
     }
-    return value->value.vint;
+    return jv->value.vint;
 }
 
 static int get_bool(json_decode_t *json, const char *key, int def)
 {
-    json_value_t *value = get_value(json, key);
-    if(value == NULL || value->type != JSON_TYPE_BOOL) {
+    json_value_t *jv = get_value(json, key);
+    if(jv == NULL || jv->type != JSON_TYPE_BOOL) {
         return def;
     }
-    return value->value.vbool;
+    return jv->value.vbool;
 }
 
 static const char* get_str(json_decode_t *json, const char *key)
 {
-    json_value_t *value = get_value(json, key);
-    if(value == NULL || value->type != JSON_TYPE_STR) {
+    json_value_t *jv = get_value(json, key);
+    if(jv == NULL || jv->type != JSON_TYPE_STR) {
         return NULL;
     }
-    return value->value.vstr;
+    return jv->value.vstr;
 }
 
-static int is_null(json_decode_t *json, const char *key)
+static bool is_null(json_decode_t *json, const char *key)
 {
-    json_value_t *value = get_value(json, key);
-    if(value == NULL || value->type != JSON_TYPE_NULL) {
-        return FALSE;
+    json_value_t *jv = get_value(json, key);
+    if(jv == NULL || jv->type != JSON_TYPE_NULL) {
+        return false;
     }
-    return TRUE;
+    return true;
 }
 
-static unsigned int get_list_count(json_decode_t *json, const char *key)
+static size_t get_list_count(json_decode_t *json, const char *key)
 {
-    json_value_t *value = get_value(json, key);
-    if(value == NULL || value->type != JSON_TYPE_LIST) {
+    json_value_t *jv = get_value(json, key);
+    if(jv == NULL || jv->type != JSON_TYPE_LIST) {
         return 0;
     }
-    return value->value.vlist_count;
+    return jv->value.vlist_count;
+}
+
+static size_t get_list_int(json_decode_t *json, const char *key, int *buf, size_t n)
+{
+    const size_t count = MIN(n, get_list_count(json, key));
+    size_t i = 0;
+    for(i = 0; i < count; i++) {
+        json_value_t *jv = get_list_value(json, key, i);
+        if(jv == NULL || jv->type != JSON_TYPE_INT) {
+            return 0;
+        }
+        buf[i] = jv->value.vint;
+    }
+    return i;
+}
+
+static size_t get_list_byte(json_decode_t *json, const char *key, uint8_t *buf, size_t n)
+{
+    const size_t count = MIN(n, get_list_count(json, key));
+    size_t i = 0;
+    for(i = 0; i < count; i++) {
+        json_value_t *jv = get_list_value(json, key, i);
+        if(jv == NULL || jv->type != JSON_TYPE_INT) {
+            return 0;
+        }
+        buf[i] = (uint8_t)jv->value.vint;
+    }
+    return i;
+}
+
+static size_t get_list_str(json_decode_t *json, const char *key, const char **buf, size_t n)
+{
+    const size_t count = MIN(n, get_list_count(json, key));
+    size_t i = 0;
+    for(i = 0; i < count; i++) {
+        json_value_t *jv = get_list_value(json, key, i);
+        if(jv == NULL || jv->type != JSON_TYPE_STR) {
+            return 0;
+        }
+        buf[i] = jv->value.vstr;
+    }
+    return i;
+}
+
+static int get_list_int_of(json_decode_t *json, const char *key, size_t index)
+{
+    json_value_t *jv = get_list_value(json, key, index);
+    if(jv == NULL || jv->type != JSON_TYPE_INT) {
+        return 0;
+    }
+    return jv->value.vint;
+}
+
+static const char* get_list_str_of(json_decode_t *json, const char *key, size_t index)
+{
+    json_value_t *jv = get_list_value(json, key, index);
+    if(jv == NULL || jv->type != JSON_TYPE_STR) {
+        return 0;
+    }
+    return jv->value.vstr;
 }
 
 static const json_decode_op_t gJsonDecodeOp = {
@@ -395,14 +477,21 @@ static const json_decode_op_t gJsonDecodeOp = {
     .get_bool = get_bool,
     .get_str = get_str,
     .is_null = is_null,
-    .get_list_count = get_list_count
+    .get_list_count = get_list_count,
+    .get_list_int = get_list_int,
+    .get_list_byte = get_list_byte,
+    .get_list_str = get_list_str,
+    .get_list_int_of = get_list_int_of,
+    .get_list_str_of = get_list_str_of
 };
 
-void json_decode(json_decode_t *json, char *jsonstr)
+void json_decode(json_decode_t *json, json_value_t *values, size_t n, char *jsonstr)
 {
     char *vptr = jsonstr;
     memset(json, 0, sizeof(json_decode_t));
     json->op = &gJsonDecodeOp;
+    json->values = values;
+    json->values_size = n;
     /* skip the front blank */
     vptr = skip_blank(vptr);
     while(vptr != NULL && *vptr != '\0') {
@@ -422,17 +511,17 @@ void json_decode(json_decode_t *json, char *jsonstr)
 //======================================================================================================================
 // json encode
 //======================================================================================================================
-static int keycmp(const char *key, const char *objKey, size_t keyLen)
+static bool keycmp(const char *key, const char *objKey, size_t keyLen)
 {
     for(size_t i = 0; i < keyLen; i++) {
         if(*key == '.' || *key == '\0') {
-            return FALSE;
+            return false;
         }
         if(*key++ != *objKey++) {
-            return FALSE;
+            return false;
         }
     }
-    return TRUE;
+    return true;
 }
 
 static char *find_list_index(char *vptr, uint32_t index, char **valueStart, char **valueEnd)

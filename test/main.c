@@ -38,19 +38,20 @@ static char buf[2000] = " \r {\
 #if 1
 START_TEST(json_test1)
 {
-    extern void json_decode(json_decode_t *json, char *jsonstr);
+    json_value_t values[100];
+    extern void json_decode(json_decode_t *json, json_value_t *values, size_t n, char *jsonstr);
     json_decode_t json;
-    json_decode(&json, buf);
+    json_decode(&json, values, ARRAY_SIZE(values), buf);
 
+    //extern void json_decode_print(json_decode_t *json);
     //json_decode_print(&json);
 
     ck_assert_str_eq(json.op->get_str(&json, "name"), "Peter");
 
-    ck_assert_int_eq(json.op->get_list_count(&json, "score"), 2);
     ck_assert_int_eq(json.op->get_int(&json, "score.0", 0), 89);
-
     ck_assert_int_eq(json.op->get_int(&json, "score.1", 0), 73);
-
+#if 1
+    ck_assert_int_eq(json.op->get_list_count(&json, "score"), 2);
     ck_assert_int_eq(json.op->get_list_count(&json, "hobby"), 0);
 
     ck_assert_int_eq(json.op->get_list_count(&json, "flag"), 2);
@@ -71,6 +72,15 @@ START_TEST(json_test1)
 
     ck_assert_str_eq(json.op->get_str(&json, "student.name"), "Tom");
     ck_assert_int_eq(json.op->get_int(&json, "student.teacher.age", 0), 35);
+
+    ck_assert_str_eq(json.op->get_list_str_of(&json, "flag", 0), "swim");
+    ck_assert_int_eq(json.op->get_list_int_of(&json, "score", 1), 73);
+
+    int vals[2];
+    json.op->get_list_int(&json, "score", vals, 2);
+    ck_assert_int_eq(vals[0], 89);
+    ck_assert_int_eq(vals[1], 73);
+#endif
 }
 END_TEST
 #endif
