@@ -43,8 +43,8 @@ typedef struct {
 } json_decode_t;
 
 typedef struct json_decode_op {
-    int (* get_int) (json_decode_t *json, const char *key, int def);
-    int (* get_bool) (json_decode_t *json, const char *key, int def);
+    int (* get_int) (json_decode_t *json, const char *key, int deft);
+    int (* get_bool) (json_decode_t *json, const char *key, int deft);
     const char* (* get_str) (json_decode_t *json, const char *key);
     bool (* is_null) (json_decode_t *json, const char *key);
     size_t (* get_list_count) (json_decode_t *json, const char *key);

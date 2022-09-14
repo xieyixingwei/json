@@ -367,20 +367,20 @@ static json_value_t* get_list_value(json_decode_t *json, const char *key, size_t
     return NULL;
 }
 
-static int get_int(json_decode_t *json, const char *key, int def)
+static int get_int(json_decode_t *json, const char *key, int deft)
 {
     json_value_t *jv = get_value(json, key);
     if(jv == NULL || jv->type != JSON_TYPE_INT) {
-        return def;
+        return deft;
     }
     return jv->value.vint;
 }
 
-static int get_bool(json_decode_t *json, const char *key, int def)
+static int get_bool(json_decode_t *json, const char *key, int deft)
 {
     json_value_t *jv = get_value(json, key);
     if(jv == NULL || jv->type != JSON_TYPE_BOOL) {
-        return def;
+        return deft;
     }
     return jv->value.vbool;
 }
