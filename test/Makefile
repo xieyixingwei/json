@@ -1,17 +1,17 @@
-PWD := $(shell pwd)
+PWD := $(shell pwd)/..
 LIB_TARGET := $(PWD)/libjson.a
 EXE_TARGET := $(PWD)/json.elf
 BUILD_DIR := $(PWD)/build
 
 # toolchain
-TOOLCHAIN_PATH := /home/gn/Workspace/Project/iotextend_lib/toolchain/x86_64-arago-linux/usr/bin
-#TOOLCHAIN_PATH := /usr/bin
-PREFIX := aarch64-linux-gnu-
+#TOOLCHAIN_PATH := /home/gn/Workspace/Project/iotextend_lib/toolchain/x86_64-arago-linux/usr/bin
+TOOLCHAIN_PATH := /usr/bin
+#PREFIX := aarch64-linux-gnu-
 CC := $(TOOLCHAIN_PATH)/$(PREFIX)gcc
 AR := $(TOOLCHAIN_PATH)/$(PREFIX)ar
 
 # sources
-LIB_SRCS := $(shell find $(PWD)/src -name '*.c')
+LIB_SRCS := $(shell find $(PWD)/lib -name '*.c')
 LIB_OBJS := $(addprefix $(BUILD_DIR)/,$(notdir $(LIB_SRCS:.c=.o)))
 
 EXE_SRCS := $(shell find $(PWD)/test -name '*.c')
@@ -21,7 +21,7 @@ vpath %.c $(sort $(dir $(LIB_SRCS)))
 vpath %.c $(sort $(dir $(EXE_SRCS)))
 
 CFLAGS := -O2
-CFLAGS += -I$(PWD)/src\
+CFLAGS += -I$(PWD)/lib\
 		  -I$(PWD)/test
 
 LFLAGS := -lcheck -lm -lpthread -lrt -lsubunit
