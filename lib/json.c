@@ -540,7 +540,7 @@ static void set_key_value(json_t *json, const char *key, const void *value, uint
 static void append_key_value(json_t *json, const char *key, const void *value, uint8_t type)
 {
     char *valueEnd = NULL;
-    if(0 == strlen(json->buf)) {
+    if(0 == strlen(json->buf) && 0 == strlen(key)) {
         insert_str(json->buf, "[]", 0);
     }
     set_key_value(json, key, NULL, JSON_TYPE_LIST);
@@ -614,8 +614,11 @@ static const json_encode_op_t sgJsonEncodeOp = {
     .append_list_str = append_list_str
 };
 
-void json_init(json_t *json, char *buf, size_t size)
+void json_init(json_t *json, char *buf, size_t size, bool clearbuf)
 {
+    if(clearbuf) {
+        memset(buf, 0, size);
+    }
     json->buf = buf;
     json->end = buf + size;
     json->encode = &sgJsonEncodeOp;

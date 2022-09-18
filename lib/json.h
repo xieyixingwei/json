@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#pragma pack(1)
+
 struct json_encode_op;
 struct json_decode_op;
 
@@ -38,6 +40,8 @@ typedef struct json_decode_op {
     const char* (* get_list_str_of) (json_t *json, const char *key, size_t index);
 } json_decode_op_t;
 
-void json_init(json_t *json, char *buf, size_t size);
+#pragma pack()
+
+void json_init(json_t *json, char *buf, size_t size, bool clearbuf);
 
 #endif

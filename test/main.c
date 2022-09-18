@@ -51,12 +51,11 @@ int main(void)
 }
 #endif
 #if 1
-extern void json_init(json_t *json, char *buf, size_t size);
 
 START_TEST(json_test1)
 {
     json_t json;
-    json_init(&json, jsonObjString, strlen(jsonObjString));
+    json_init(&json, jsonObjString, strlen(jsonObjString), false);
 
     ck_assert_int_eq(NULL == json.decode->get_str(&json, "classmates.path"), 1);
     ck_assert_int_eq(NULL == json.decode->get_str(&json, "mother.path"), 1);
@@ -114,9 +113,9 @@ true\
 ]";
 START_TEST(json_test2)
 {
-    extern void json_init(json_t *json, char *buf, size_t size);
+    extern void json_init(json_t *json, char *buf, size_t size, bool clearbuf);
     json_t json;
-    json_init(&json, jsonListString, strlen(jsonListString));
+    json_init(&json, jsonListString, strlen(jsonListString), false);
 
     ck_assert_str_eq(json.decode->get_str(&json, "0"), "python");
 
@@ -137,7 +136,7 @@ START_TEST(json_test3)
 {
     json_t json;
     char tmp[300] = {0};
-    json_init(&json, tmp, ARRAY_SIZE(tmp));
+    json_init(&json, tmp, ARRAY_SIZE(tmp), true);
 
     json.encode->set_long(&json, "age", 10);
     ck_assert_str_eq(tmp, "{\"age\":10}");
@@ -173,7 +172,7 @@ START_TEST(json_test4)
 {
     char tmp[500] = { 0 };
     json_t json;
-    json_init(&json, tmp, ARRAY_SIZE(tmp));
+    json_init(&json, tmp, ARRAY_SIZE(tmp), true);
 
     json.encode->set_str(&json, "name", "Jack");
     ck_assert_str_eq(tmp, "{\"name\":\"Jack\"}");
@@ -240,7 +239,7 @@ START_TEST(json_test5)
 {
     char tmp[500] = { 0 };
     json_t json;
-    json_init(&json, tmp, ARRAY_SIZE(tmp));
+    json_init(&json, tmp, ARRAY_SIZE(tmp), true);
 
     json.encode->append_list_str(&json, "", "hello");
     ck_assert_str_eq(tmp, "[\"hello\"]");
@@ -255,6 +254,24 @@ START_TEST(json_test5)
 }
 END_TEST
 
+START_TEST(json_test6)
+{
+    char tmp[500] = { 0 };
+    json_t json;
+    json_init(&json, tmp, ARRAY_SIZE(tmp), true);
+
+    json.encode->append_list_long(&json, "bytes", 12);
+    ck_assert_str_eq(tmp, "{\"bytes\":[12]}");
+
+    json.encode->append_list_long(&json, "bytes", 128);
+    //printf("--- %s\r\n", tmp);
+    ck_assert_str_eq(tmp, "{\"bytes\":[12,128]}");
+
+    //json.encode->append_list_str(&json, "student.subjects", "english");
+    //printf("--- %s\r\n", tmp);
+    //ck_assert_str_eq(tmp, "{\"name\":\"Peter\",\"teacher\":{\"name\":\"LiLi\",\"age\":28,\"subject\":[\"math\",\"english\"]}}");
+}
+END_TEST
 #if 1
 TCase *json_test_case(void)
 {
@@ -264,6 +281,7 @@ TCase *json_test_case(void)
     tcase_add_test(tc, json_test3);
     tcase_add_test(tc, json_test4);
     tcase_add_test(tc, json_test5);
+    tcase_add_test(tc, json_test6);
     return tc;
 }
 
