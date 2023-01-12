@@ -223,6 +223,7 @@ char *get_kv(char *vptr, char *end, const char *key, char **keyStart, char **val
             key = point + 1;
         }
     }
+    return NULL;
 }
 
 static bool parse_general_value(char *vptr, char *end, void *value)
@@ -544,7 +545,7 @@ static void append_key_value(json_t *json, const char *key, const void *value, u
         insert_str(json->buf, "[]", 0);
     }
     set_key_value(json, key, NULL, JSON_TYPE_LIST);
-    char *vptr = get_kv(json->buf, json->end, key, NULL, &valueEnd);
+    get_kv(json->buf, json->end, key, NULL, &valueEnd);
     valueEnd = insert_comma(valueEnd);
     insert_value(valueEnd, value, type);
 }
